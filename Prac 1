@@ -1,0 +1,80 @@
+; Write an X86/64 ALP to accept five 64-bit hexadecimal numbers
+; from user and display the accepted numbers
+
+section .data
+    msg1 db "Enter 5 64 bit numbers",10
+    len1 equ $-msg1
+
+    msg2 db 10,"Entered 5 64 bit numbers",10
+    len2 equ $-msg2
+
+section .bss
+    array resb 10
+    temp  resb 2
+
+section .text
+    global _start
+
+_start:
+
+; Display first message
+    mov rax,1
+    mov rdi,1
+    mov rsi,msg1
+    mov rdx,len1
+    syscall
+
+; Accept 5 numbers
+    mov rcx,5
+    mov rbx,array
+
+accept:
+    mov rax,0
+    mov rdi,0
+    mov rsi,temp
+    mov rdx,2
+    syscall
+
+    mov al,[temp]
+    mov [rbx],al
+
+    inc rbx
+    loop accept
+
+; Display second message
+    mov rax,1
+    mov rdi,1
+    mov rsi,msg2
+    mov rdx,len2
+    syscall
+
+; Display accepted numbers
+    mov rcx,5
+    mov rbx,array
+
+display:
+    mov al,[rbx]
+    mov [temp],al
+
+    mov rax,1
+    mov rdi,1
+    mov rsi,temp
+    mov rdx,1
+    syscall
+
+; Print newline
+    mov byte[temp],10
+
+    mov rax,1
+    mov rdi,1
+    mov rsi,temp
+    mov rdx,1
+    syscall
+
+    inc rbx
+    loop display
+
+; Exit program
+    mov rax,60
+    mov rdi,0
+    syscall
