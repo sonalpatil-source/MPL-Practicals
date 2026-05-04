@@ -1,0 +1,74 @@
+;Title: Write X86/64 ALP to convert 5- digit BCD number into its equivalent HEX number.
+Section .data
+Msg1 db “Enter 4 digit BCD number: “   ; message asking user to enter number
+Len1 equ $-msg1                        ; length of message
+Msg2 db 10,”Equivalent HEX number: “   ; message to display result (10 = newline)
+Len2 equ $-msg2                        ; length of message
+Section .bss
+Num resb 5     ; buffer to store user input (4 digits + newline)
+Hex resb 4     ; buffer to store 4-digit hex results
+; macro for Linux system call
+; parameters: syscall_no , fd , buffer , length
+%macro scall 4
+ Mov rax,%1
+ Mov rdi,%2
+ Mov rsi,%3
+ Mov rdx,%4
+ Syscall
+%endmacro
+Section .text
+Global _start
+_start:
+;-----------------------------------------
+; display message asking for input
+;-----------------------------------------
+Scall 1,1,msg1,len1        ; write msg1 to stdout
+;-----------------------------------------
+; read 4 digit BCD number from user
+;-----------------------------------------
+Scall 0,0,num,5            ; read input and store in num
+;-----------------------------------------
+; ASCII to decimal conversion
+; Example: “1234” -> 1234
+;-----------------------------------------
+Mov rsi,num                ; point to input buffer
+Xor rax,rax                ; clear rax (will store decimal value)
+Mov rcx,4                  ; process 4 digits
+Dec_convert:
+ Mov bl,[rsi]              ; load ASCII digit
+ Sub bl,’0’                ; convert ASCII to numeric value
+ Imul rax,10               ; multiply previous result by 10
+ Add rax,rbx               ; add current digit
+ Inc rsi                   ; move to next digit
+ Loop dec_convert          ; repeat 4 times
+;-----------------------------------------
+; Decimal to HEX conversion
+; Example: 1234 -> 04D2
+;-----------------------------------------
+Mov rbx,16                 ; divisor = 16 for hex conversion
+Mov rdi,hex+3              ; start storing from last position
+Mov rcx,4                  ; generate 4 hex digits
+Hex_loop:
+ Xor rdx,rdx               ; clear remainder register
+ Div rbx                   ; divide rax by 16
+                           ; quotient -> rax
+                           ; remainder -> rdx
+ Cmp dl,9                  ; check if remainder > 9
+ Jbe digit                 ; if 0-9 skip adjustment
+ Add dl,7                  ; convert 10-15 to A-F
+Digit:
+ Add dl,’0’                ; convert number to ASCII
+ Mov [rdi],dl              ; store hex digit
+ Dec rdi                   ; move backward in buffer
+ Loop hex_loop             ; repeat for 4 digits
+;-----------------------------------------
+; display result
+;-----------------------------------------
+Scall 1,1,msg2,len2        ; print result message
+Scall 1,1,hex,4            ; print 4-digit hex number
+;-----------------------------------------
+; exit program
+;-----------------------------------------
+Mov rax,60                 ; syscall number for exit
+Xor rdi,rdi                ; exit status 0
+Syscall
