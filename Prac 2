@@ -1,0 +1,64 @@
+; Write an X86/64 ALP to accept a string
+; and display its length
+
+section .data
+    msg1 db "Enter the string: "
+    len1 equ $-msg1
+
+    msg2 db 10,"Length of the string: "
+    len2 equ $-msg2
+
+section .bss
+    string resb 50
+    count  resb 2
+
+section .text
+    global _start
+
+_start:
+
+; Display message
+    mov rax,1
+    mov rdi,1
+    mov rsi,msg1
+    mov rdx,len1
+    syscall
+
+; Accept string
+    mov rax,0
+    mov rdi,0
+    mov rsi,string
+    mov rdx,50
+    syscall
+
+; Length returned in RAX
+    dec rax                ; remove ENTER key count
+    mov bl,10
+    div bl                 ; quotient in AL, remainder in AH
+
+; Convert quotient to ASCII
+    add al,'0'
+    mov [count],al
+
+; Convert remainder to ASCII
+    add ah,'0'
+    mov [count+1],ah
+
+; Display message
+    mov rax,1
+    mov rdi,1
+    mov rsi,msg2
+    mov rdx,len2
+    syscall
+
+; Display count
+    mov rax,1
+    mov rdi,1
+    mov rsi,count
+    mov rdx,2
+    syscall
+
+; Exit
+    mov rax,60
+    mov rdi,0
+    syscall
