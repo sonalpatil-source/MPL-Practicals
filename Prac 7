@@ -1,0 +1,78 @@
+section .data
+  msg1 db "Enter 4 digit Hex Number:",0
+  len1 equ $-msg1
+  msg2 db 10, "Equivalent BCD Number:",0
+  len2 equ $-msg2
+  newline db 10
+
+section .bss
+  num resb 17                ; To store input hex(eg.FFFF)
+  bcd resb 10                ; To store BCD result after conversion
+
+%macro scall 4
+    mov rax, %1                ; system call number
+    mov rdi, %2                ; File discriptor
+    mov rsi, %3                ; Buffer adder
+    mov rdx, %4        ; Length
+    syscall
+%endmacro
+
+section .text
+  global _start
+
+_start:
+  ; Display message msg1 (Enter 4 digit Hex Number)
+  scall 1, 1, msg1, len1
+  ; Accept 4-digit hex number
+  scall 0, 0, num, 5         ; read from stdin 4 characters+enter
+
+  ; convert ASCII Hex to Actual Hex in RBX (eg. "1A3F" to 1A3F)
+  call ascii_to_hex
+
+  ; Convert Hex to BCD
+  mov rax, rbx                 ; Move hex number to RAX for division
+  mov rbx, 10                 ; Divisor
+  mov rdi, bcd                 ; Result pointer
+  ; Division loop for BCD
+  mov rcx, 0                 ; counter(digits)
+loop_bcd:
+  mov rdx, 0                 ; clear remainder register
+  div rbx                ; RAX/10 --> RAX=Quotient,RDX=Remainder
+  push rdx                ; Store remainder (digits in reverse)
+  inc rcx
+  cmp rax, 0
+  jne loop_bcd
+
+  ; Pop remainders and convert to ASCII
+display_bcd:
+  pop rdx 
+  add dl, 30h                ; Convert to ASCII
+  mov [rdi], dl                ; store digit present in DL into BCD buffer
+  inc rdi                ; move pointer
+  loop display_bcd        ; repeat untill all digits printed
+
+  ;Print Result
+  scall 1, 1, msg2, len2
+  scall 1, 1, bcd, 5        ; Print BCD 
+
+  ;Exit 
+  mov rax, 60
+  xor rdi, rdi                ; or mov rdi,0
+  syscall
+
+ascii_to_hex:
+  mov rsi, num                ; move num(input string) to rsi
+  mov rbx, 0                ; clear rbx register for result
+  mov rcx, 4                ; 4 hex digits
+loop_hex:
+  rol rbx, 4                ; rotate left by 4 bits(i.e multiply by 16)
+  mov al, [rsi]                ; load one ascii character
+  cmp al, 39h 
+  jbe skip
+  sub al, 07h
+skip:
+  sub al, 30h
+  add bl, al                ; add digit into result
+  inc rsi
+  loop loop_hex        ; repeat for 4 digits
+  ret
