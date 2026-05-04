@@ -1,0 +1,70 @@
+section .data 
+msg1 db "Count of Positive numbers" 
+len1 equ $-msg1 
+msg2 db "Count of Negative numbers" 
+len2 equ $-msg2 
+array db 10,12,-21,-12,-19,-34,41         ;array of signed numbers
+
+%macro print 2 
+mov rax,01                        ;sys write 
+mov rdi,01                        ;stdout 
+mov rsi,%1 
+mov rdx,%2                        ;length 
+syscall 
+%endmacro 
+
+section .bss                         
+count resb 2                         ;loop counter 
+pcount resb 2                 ;positive count 
+ncount resb 2                 ;negative count 
+totalcount resb 2 
+
+section .text global _start 
+_start: 
+mov byte[count],07                ; total elements in array 
+mov byte[pcount],00 
+mov byte[ncount],00 
+mov rsi,array                         ; point to start of array
+Up: 
+mov al,00                        ;load current element 
+add al,[rsi] 
+js neg                
+inc byte[pcount]                ;increment positive count 
+jmp Down 
+neg: 
+inc byte[ncount] 
+
+Down: 
+add rsi,01                        ;move to next array element 
+dec byte[count]                ;decrement loop counter 
+jnz Up 
+mov bl,[pcount] 
+mov dl,[ncount] 
+
+b1: 
+print msg1,len1                ; print positive message 
+mov bh,[pcount] 
+call disp 
+print msg2,len2 
+mov bh,[ncount] 
+call disp 
+mov rax,60                        ;sys exit 
+mov rdi,00 
+syscall 
+
+disp: 
+mov byte[count],02                ; print 2 hex digits 
+loop: 
+rol bh,04                        ; rotate left 4 bits 
+mov al,bh 
+AND al,0FH                        ; isolate lower nibble 
+cmp al,09 
+jbe l1 
+add al,07h 
+l1: 
+add al,30h                        ;convert to ASCII 
+mov[totalcount],al                ; store character 
+print totalcount,02 
+dec byte[count] 
+jnz loop 
+ret
